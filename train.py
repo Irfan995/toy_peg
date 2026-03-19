@@ -17,7 +17,7 @@ class ContinuousEnv:
         self.size = size
         self.dt = 0.1
         self.vA = 1.0
-        self.vD = 1.2
+        self.vD = 1.0
         self.capture_radius = 0.5
 
         # obstacle
@@ -78,18 +78,18 @@ class ContinuousEnv:
 
         # capture
         if dist_AD <= self.capture_radius:
-            reward = -1
+            reward = -10
             done = True
 
         # attacker reaches goal
         elif self.attacker[0] >= self.size:
-            reward = 1
+            reward = 10
             done = True
 
         else:
             # reward shaping
-            reward += -0.05 * dist_target
-            reward += +0.001 * dist_AD
+            reward += -0.1 * dist_target
+            reward += +0.02 * dist_AD
 
         return self.get_state(), reward, done
 
@@ -167,9 +167,14 @@ for ep in range(episodes):
         uD = actor_D(s)
 
         # add exploration noise
-        noise = np.random.normal(0, 0.1, size=2)
-        uA_np = (uA.detach().cpu().numpy()[0] + noise)
-        uD_np = (uD.detach().cpu().numpy()[0] + noise)
+        # noise = np.random.normal(0, 0.1, size=2)
+        # uA_np = (uA.detach().cpu().numpy()[0] + noise)
+        # uD_np = (uD.detach().cpu().numpy()[0] + noise)
+        noise_A = np.random.normal(0, 0.1, size=2)
+        noise_D = np.random.normal(0, 0.1, size=2)
+
+        uA_np = uA.detach().cpu().numpy()[0] + noise_A
+        uD_np = uD.detach().cpu().numpy()[0] + noise_D
 
         next_state, r, done = env.step(uA_np, uD_np)
 
@@ -338,8 +343,12 @@ def visualize(result):
 
     plt.figure()
 
-    plt.plot(A_path[:,1], A_path[:,0], 'b-o', label="Attacker")
-    plt.plot(D_path[:,1], D_path[:,0], 'r-o', label="Defender")
+    plt.plot(A_path[:,1], A_path[:,0], 'b-', label="Attacker")
+    plt.plot(D_path[:,1], D_path[:,0], 'r-', label="Defender")
+
+    # Highlight starting points
+    plt.plot(A_path[0,1], A_path[0,0], 'b-o', markersize=15, zorder=5)
+    plt.plot(D_path[0,1], D_path[0,0], 'r-o', markersize=15, zorder=5)
 
     # obstacle
     circle = plt.Circle(env.obs_center[::-1], env.obs_radius, color='black')
@@ -349,10 +358,10 @@ def visualize(result):
     plt.ylim(0, env.size)
 
     plt.legend()
-    plt.title(
-        f"Trajectory with Obstacle | {result['outcome']} | "
-        f"reward = {result['reward']:.3f}"
-    )
+    # plt.title(
+    #     f"Trajectory with Obstacle | {result['outcome']} | "
+    #     f"reward = {result['reward']:.3f}"
+    # )
     plt.show()
 
 
